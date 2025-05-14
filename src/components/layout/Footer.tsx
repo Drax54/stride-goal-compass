@@ -1,6 +1,5 @@
-
 import { Link } from 'react-router-dom';
-import { Calendar, Target, Facebook, Twitter, Instagram, GitHub } from 'lucide-react';
+import { Calendar, Target, Facebook, Twitter, Instagram, Github } from 'lucide-react';
 
 export function Footer() {
   return (
@@ -26,7 +25,7 @@ export function Footer() {
                 <Instagram className="h-5 w-5" />
               </a>
               <a href="#" className="text-muted-foreground hover:text-accent transition-colors">
-                <GitHub className="h-5 w-5" />
+                <Github className="h-5 w-5" />
               </a>
             </div>
           </div>

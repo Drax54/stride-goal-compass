@@ -4,6 +4,7 @@ import { HabitCard, Habit } from './HabitCard';
 import { Button } from '@/components/ui/button';
 import { Plus, Target } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 interface HabitListProps {
   viewType: 'daily' | 'weekly' | 'monthly' | 'analytics';

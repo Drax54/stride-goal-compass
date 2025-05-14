@@ -1,8 +1,7 @@
-
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Target, CalendarCheck, BarChart, MobileIcon } from 'lucide-react';
+import { Target, CalendarCheck, BarChart, Smartphone } from 'lucide-react';
 
 export default function Index() {
   return (
@@ -113,7 +112,7 @@ export default function Index() {
                 description: "Visualize your progress with intuitive charts and statistics to keep you motivated."
               },
               {
-                icon: <MobileIcon className="h-10 w-10 text-accent" />,
+                icon: <Smartphone className="h-10 w-10 text-accent" />,
                 title: "Mobile Friendly",
                 description: "Track your habits on the go with our fully responsive mobile design."
               }

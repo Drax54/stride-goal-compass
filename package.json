@@ -7,8 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+     "build:dev": "vite build --mode development",
   },
+  
   "dependencies": {
     "@supabase/supabase-js": "^2.39.7",
     "@types/canvas-confetti": "^1.9.0",

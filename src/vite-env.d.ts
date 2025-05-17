@@ -17,4 +17,3 @@ declare module '*.tsx' {
     viewMode?: 'day' | 'week' | 'month' | 'year';
   }
 }
-

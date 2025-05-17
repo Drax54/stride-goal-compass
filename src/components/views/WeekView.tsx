@@ -18,7 +18,8 @@ import { logEvent, logDebug, logError, createTimer, LogCategory } from '../../li
 
 // Define the props interface for WeekView
 interface WeekViewProps {
-  viewMode?: 'day' | 'week' | 'month' | 'year';
+  viewMode: 'day' | 'week' | 'month' | 'year';
+  key?: number;
 }
 
 interface Habit {

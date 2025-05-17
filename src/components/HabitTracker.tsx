@@ -228,9 +228,11 @@ const HabitTracker: React.FC<HabitTrackerProps> = ({ initialView = 'habits' }) =
       case 'habits':
         switch (activeView) {
           case 'day':
+            return <WeekView key={key} viewMode="day" />;
           case 'week':
+            return <WeekView key={key} viewMode="week" />;
           case 'month':
-            return <WeekView key={key} viewMode={activeView} />;
+            return <WeekView key={key} viewMode="month" />;
           case 'year':
             return <YearView key={key} />;
           default:

@@ -57,7 +57,7 @@ declare namespace LogCategory {
 // Define return type for createTimer
 declare interface Timer {
   stop: (additionalData?: Record<string, unknown>) => number;
-  (): number;
 }
 
 declare module 'lovable-tagger';
+

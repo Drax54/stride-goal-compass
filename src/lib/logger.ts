@@ -1,3 +1,4 @@
+
 /**
  * Application-wide logging utility
  * Provides consistent logging across the application with categorization
@@ -11,7 +12,9 @@ export enum LogCategory {
   UI = 'User Interface',
   API = 'API',
   NAVIGATION = 'Navigation',
-  SYSTEM = 'System'
+  SYSTEM = 'System',
+  PERFORMANCE = 'Performance',
+  ERROR = 'Error'
 }
 
 // Define log levels

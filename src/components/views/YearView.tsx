@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { format, getYear, eachMonthOfInterval, startOfYear, endOfYear, addYears, subYears } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { logEvent, logDebug, logError, createTimer } from '../../lib/logger';
+import { LogCategory } from '../../lib/logger';
 
 interface Goal {
   id: string;
@@ -32,10 +33,10 @@ const YearView: React.FC = () => {
   const [completions, setCompletions] = useState<HabitCompletion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [habitCompletions, setHabitCompletions] = useState<Record<string, 'completed' | null>>({});
+  // Keep this state but mark it with underscore to indicate it's not used directly
+  const [_habitCompletions, setHabitCompletions] = useState<Record<string, 'completed' | null>>({});
   const [user, setUser] = useState<User | null>(null);
   
-  // Add this state for processing habits to fix the errors
   const [processingHabits, setProcessingHabits] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -43,8 +44,8 @@ const YearView: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const timer = createTimer("YEAR_DATA_FETCH");
-        logDebug("HABITS", 'Fetching user and goals for year view');
+        const timer = createTimer(LogCategory.PERFORMANCE, "YEAR_DATA_FETCH");
+        logDebug(LogCategory.HABITS, 'Fetching user and goals for year view');
 
         // Fetch User
         const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -87,9 +88,9 @@ const YearView: React.FC = () => {
         });
         setHabitCompletions(transformedCompletions);
 
-        logEvent("HABITS", 'Fetched year view data', { duration: timer.stop() });
+        logEvent(LogCategory.HABITS, 'Fetched year view data', { duration: timer.stop() });
       } catch (err: any) {
-        logError("ERROR", 'Error fetching year view data', { error: err.message });
+        logError(LogCategory.ERROR, 'Error fetching year view data', { error: err.message });
         setError(err.message || "Failed to load data.");
       } finally {
         setLoading(false);
@@ -116,9 +117,8 @@ const YearView: React.FC = () => {
     setCurrentYear(prevYear => addYears(new Date(prevYear, 0, 1), 1).getFullYear());
   };
   
-  // We're keeping this function even though it's not directly used in this component
-  // as it may be needed for future functionality or be called from other components
-  const handleHabitCompletion = async (habitId: string, date: Date) => {
+  // We're keeping this function but marking it with underscore to indicate it's for future use
+  const _handleHabitCompletion = async (habitId: string, date: Date) => {
     // Format the date for storage and display
     const dateStr = format(date, 'yyyy-MM-dd');
     const processingKey = `${habitId}-${dateStr}`;
@@ -137,8 +137,8 @@ const YearView: React.FC = () => {
     });
     
     try {
-      const timer = createTimer("HABIT_COMPLETION");
-      logDebug("HABITS", `Toggling habit completion for habit ${habitId} on ${dateStr}`);
+      const timer = createTimer(LogCategory.PERFORMANCE, "HABIT_COMPLETION");
+      logDebug(LogCategory.HABITS, `Toggling habit completion for habit ${habitId} on ${dateStr}`);
       
       // Check if the habit is already completed on this date
       const isCompleted = !!completions.find(completion => completion.habit_id === habitId && completion.date === dateStr);
@@ -153,7 +153,7 @@ const YearView: React.FC = () => {
         .eq('user_id', user?.id);
         
         if (deleteError) {
-          logError("ERROR", `Error deleting habit completion for habit ${habitId} on ${dateStr}`, { error: deleteError.message });
+          logError(LogCategory.ERROR, `Error deleting habit completion for habit ${habitId} on ${dateStr}`, { error: deleteError.message });
           setError("Failed to remove completion. Please try again.");
           return;
         }
@@ -165,7 +165,7 @@ const YearView: React.FC = () => {
           return rest;
         });
         
-        logEvent("HABITS", `Removed habit completion for habit ${habitId} on ${dateStr}`, { duration: timer.stop() });
+        logEvent(LogCategory.HABITS, `Removed habit completion for habit ${habitId} on ${dateStr}`, { duration: timer.stop() });
       } else {
         // If it's not completed, add a completion
         const { data: insertData, error: insertError } = await supabase
@@ -174,7 +174,7 @@ const YearView: React.FC = () => {
         .select();
         
         if (insertError) {
-          logError("ERROR", `Error inserting habit completion for habit ${habitId} on ${dateStr}`, { error: insertError.message });
+          logError(LogCategory.ERROR, `Error inserting habit completion for habit ${habitId} on ${dateStr}`, { error: insertError.message });
           setError("Failed to add completion. Please try again.");
           return;
         }
@@ -187,10 +187,10 @@ const YearView: React.FC = () => {
           setCompletions(prevCompletions => [...prevCompletions, newCompletion]);
           setHabitCompletions(prev => ({ ...prev, [`${habitId}-${dateStr}`]: 'completed' }));
           
-          logEvent("HABITS", `Added habit completion for habit ${habitId} on ${dateStr}`, { duration: timer.stop() });
+          logEvent(LogCategory.HABITS, `Added habit completion for habit ${habitId} on ${dateStr}`, { duration: timer.stop() });
         } else {
           const errorMessage = "Failed to insert completion: No data returned.";
-          logError("ERROR", errorMessage, { error: errorMessage });
+          logError(LogCategory.ERROR, errorMessage, { error: errorMessage });
           setError("Failed to add completion. Please try again.");
           return;
         }

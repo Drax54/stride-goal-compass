@@ -14,6 +14,7 @@ import {
 } from 'date-fns';
 import { enGB } from 'date-fns/locale';
 import { logEvent, logDebug, logError, createTimer, LogCategory } from '../../lib/logger';
+import { Circle, CheckCircle, X, Check } from 'lucide-react';
 
 // Define the props interface for WeekView
 interface WeekViewProps {
@@ -559,7 +560,7 @@ const WeekView: React.FC<WeekViewProps> = ({ viewMode = 'week' }) => {
                     }}
                   >
                     {isCompleted && (
-                      <Check className="w-6 h-6 text-green-600" />
+                      <CheckCircle className="w-6 h-6 text-green-600" />
                     )}
                   </div>
                 </div>

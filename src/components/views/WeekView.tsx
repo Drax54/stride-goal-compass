@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+
+import { useState, useEffect } from 'react';
+import { ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { 
   format, 
@@ -14,7 +15,7 @@ import {
 } from 'date-fns';
 import { enGB } from 'date-fns/locale';
 import { logEvent, logDebug, logError, createTimer, LogCategory } from '../../lib/logger';
-import { Circle, CheckCircle, X, Check } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Define the props interface for WeekView
 interface WeekViewProps {
@@ -44,19 +45,8 @@ interface HabitCompletion {
   user_id: string;
 }
 
-interface User {
-  id: string;
-  email?: string;
-}
-
-interface DbGoal {
-  id: string;
-  goal: string;
-  user_id: string;
-  habits: Habit[];
-}
-
 const WeekView: React.FC<WeekViewProps> = ({ viewMode = 'week' }) => {
+  const { user } = useAuth();
   const [currentWeekStart, setCurrentWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [displayDates, setDisplayDates] = useState<Date[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -64,56 +54,13 @@ const WeekView: React.FC<WeekViewProps> = ({ viewMode = 'week' }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [habitCompletions, setHabitCompletions] = useState<Record<string, 'completed' | null>>({});
-  const [user, setUser] = useState<User | null>(null);
   
-  // State for tracking processing habits
-  const [processingHabits, setProcessingHabits] = useState<Record<string, boolean>>({});
-
   // Get current date for highlighting today
   const today = new Date();
-
-  // When component mounts, check for authenticated user
-  useEffect(() => {
-    const checkAuth = async () => {
-      logEvent(LogCategory.AUTH, 'Checking user authentication');
-      
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError) {
-        logError(LogCategory.AUTH, 'Authentication error in WeekView', { 
-          error: authError.message 
-        });
-      }
-      
-      setUser(user);
-      
-      logEvent(LogCategory.AUTH, 'User auth state checked in WeekView', {
-        isAuthenticated: !!user,
-        userId: user?.id
-      });
-    };
-    
-    checkAuth();
-    
-    // Subscribe to auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null);
-      
-      logEvent(LogCategory.AUTH, 'Auth state changed in WeekView', {
-        isAuthenticated: !!session?.user,
-        userId: session?.user?.id
-      });
-    });
-    
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
 
   // Generate dates for the week view
   useEffect(() => {
     const generateDates = () => {
-      console.log(`🗓️ Generating dates for ${viewMode} view`);
       let dates: Date[] = [];
       
       if (viewMode === 'week') {
@@ -121,17 +68,22 @@ const WeekView: React.FC<WeekViewProps> = ({ viewMode = 'week' }) => {
         const weekStart = startOfWeek(currentWeekStart, { weekStartsOn: 1 });
         const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
         dates = eachDayOfInterval({ start: weekStart, end: weekEnd });
-        console.log(`📅 Week view - showing ${format(weekStart, 'yyyy-MM-dd')} to ${format(weekEnd, 'yyyy-MM-dd')}`);
+        logDebug(LogCategory.UI, `Week view dates generated`, {
+          start: format(weekStart, 'yyyy-MM-dd'),
+          end: format(weekEnd, 'yyyy-MM-dd')
+        });
       } else if (viewMode === 'month') {
         // Generate all days in the month
         const monthStart = startOfMonth(currentWeekStart);
         const monthEnd = endOfMonth(currentWeekStart);
         dates = eachDayOfInterval({ start: monthStart, end: monthEnd });
-        console.log(`📅 Month view - showing ${format(monthStart, 'yyyy-MM-dd')} to ${format(monthEnd, 'yyyy-MM-dd')}`);
+        logDebug(LogCategory.UI, `Month view dates generated`, {
+          start: format(monthStart, 'yyyy-MM-dd'),
+          end: format(monthEnd, 'yyyy-MM-dd')
+        });
       }
       
       setDisplayDates(dates);
-      console.log(`🗓️ Generated ${dates.length} dates for ${viewMode} view`);
     };
     
     generateDates();
@@ -140,25 +92,13 @@ const WeekView: React.FC<WeekViewProps> = ({ viewMode = 'week' }) => {
   // Fetch goals and habits when component mounts or dates change
   useEffect(() => {
     const fetchGoals = async () => {
+      if (!user) return;
+      
       setLoading(true);
       
       try {
         logEvent(LogCategory.HABITS, `Fetching goals and habits for ${viewMode} view`);
-        const timer = createTimer(LogCategory.HABITS, 'Goals and habits fetch');
-        
-        // Check if user is authenticated
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        
-        if (userError || !user) {
-          logError(LogCategory.AUTH, 'Authentication error in WeekView', { 
-            error: userError?.message 
-          });
-          setError('Authentication error. Please log in again.');
-          setLoading(false);
-          return;
-        }
-        
-        logDebug(LogCategory.AUTH, 'User authenticated', { userId: user.id });
+        const timer = createTimer(LogCategory.PERFORMANCE, 'Goals and habits fetch');
         
         // Fetch goals
         const { data: goalsData, error: goalsError } = await supabase
@@ -173,9 +113,6 @@ const WeekView: React.FC<WeekViewProps> = ({ viewMode = 'week' }) => {
           return;
         }
         
-        logDebug(LogCategory.DB, 'Goals fetched', { count: goalsData?.length || 0 });
-        console.log(`📊 Fetched ${goalsData?.length || 0} goals from database`);
-        
         // Fetch habits
         const { data: habitsData, error: habitsError } = await supabase
             .from('habits')
@@ -189,8 +126,6 @@ const WeekView: React.FC<WeekViewProps> = ({ viewMode = 'week' }) => {
           return;
         }
         
-        console.log(`📊 Fetched ${habitsData?.length || 0} habits from database`);
-        
         // Track habit names globally to prevent duplicates across goals
         const globalHabitNames = new Map<string, Habit>();
         const uniqueHabits: Habit[] = [];
@@ -199,73 +134,27 @@ const WeekView: React.FC<WeekViewProps> = ({ viewMode = 'week' }) => {
           if (!globalHabitNames.has(habit.name)) {
             globalHabitNames.set(habit.name, habit);
             uniqueHabits.push(habit);
-          } else {
-            console.log(`🔄 Found duplicate habit: ${habit.name}, ID: ${habit.id}, using ID: ${globalHabitNames.get(habit.name)?.id}`);
           }
         });
-        
-        logDebug(LogCategory.DB, 'Habits fetched', { 
-          totalCount: habitsData?.length || 0,
-          uniqueCount: uniqueHabits.length
-        });
-        
-        console.log(`🔍 Filtered ${habitsData?.length || 0} habits to ${uniqueHabits.length} unique habits by name`);
         
         // Create a mapping of goal ID to goal for faster lookups
         const goalMap = new Map();
         goalsData?.forEach(goal => goalMap.set(goal.id, { ...goal, habits: [] }));
         
-        // Check for duplicate goal names in the raw data from database
-        const goalNameCounts = new Map<string, number>();
-        const goalNameToIds = new Map<string, string[]>();
-        
-        goalsData?.forEach(goal => {
-          const count = goalNameCounts.get(goal.goal) || 0;
-          goalNameCounts.set(goal.goal, count + 1);
-          
-          const ids = goalNameToIds.get(goal.goal) || [];
-          ids.push(goal.id);
-          goalNameToIds.set(goal.goal, ids);
-        });
-        
-        // Log duplicate goals
-        console.log(`🔍 Goal name duplication check:`);
-        goalNameCounts.forEach((count, name) => {
-          if (count > 1) {
-            console.log(`⚠️ Found ${count} goals with name "${name}" - IDs: ${goalNameToIds.get(name)?.join(", ")}`);
-          }
-        });
-        
-        // Assign habits to goals, ensuring no duplicates within a goal
+        // Assign habits to goals
         uniqueHabits.forEach(habit => {
           const goalId = habit.goal_id;
           const goal = goalMap.get(goalId);
           if (goal) {
-            // Log which habit is being assigned to which goal
-            console.log(`🔗 Assigning habit "${habit.name}" (ID: ${habit.id}) to goal "${goal.goal}" (ID: ${goalId})`);
-            
             // Only add if this habit name doesn't already exist in this goal
             if (!goal.habits.some((h: Habit) => h.name === habit.name)) {
               goal.habits.push(habit);
-            } else {
-              console.log(`⚠️ Skipping duplicate habit "${habit.name}" for goal "${goal.goal}"`);
             }
-          } else {
-            console.log(`❌ Goal with ID ${goalId} not found for habit "${habit.name}" (${habit.id})`);
           }
         });
         
         // Convert the map to an array for state
         const mappedGoals = Array.from(goalMap.values());
-        
-        console.log(`📊 Final processed goals (${mappedGoals.length}):`);
-        mappedGoals.forEach((goal: DbGoal) => {
-          console.log(`  - Goal: ${goal.goal} (ID: ${goal.id}) with ${goal.habits.length} habits`);
-          goal.habits.forEach((habit: Habit) => {
-            console.log(`      - Habit: ${habit.name} (ID: ${habit.id})`);
-          });
-        });
-        
         setGoals(mappedGoals);
         
         // Fetch habit completions for the displayed date range
@@ -288,10 +177,10 @@ const WeekView: React.FC<WeekViewProps> = ({ viewMode = 'week' }) => {
       }
     };
 
-    if (displayDates.length > 0) {
+    if (displayDates.length > 0 && user) {
       fetchGoals();
     }
-  }, [displayDates, viewMode]);
+  }, [displayDates, viewMode, user]);
 
   const fetchCompletions = async (userId: string) => {
     if (displayDates.length === 0) {
@@ -299,16 +188,12 @@ const WeekView: React.FC<WeekViewProps> = ({ viewMode = 'week' }) => {
       return;
     }
     
-    console.log(`🔄 fetchCompletions called for user ${userId} in week view`);
-    
     try {
       // Determine the date range for week view
       const startDate = displayDates[0];
       const endDate = displayDates[displayDates.length - 1];
       
-      console.log(`📅 Date range: ${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
-      
-      logDebug(LogCategory.HABITS, `Fetching habit completions for week view`, {
+      logDebug(LogCategory.HABITS, `Fetching habit completions`, {
         weekStart: format(startDate, 'yyyy-MM-dd'),
         weekEnd: format(endDate, 'yyyy-MM-dd')
       });
@@ -321,46 +206,26 @@ const WeekView: React.FC<WeekViewProps> = ({ viewMode = 'week' }) => {
         .lte('completed_date', format(endDate, 'yyyy-MM-dd'));
       
       if (error) {
-        console.log(`❌ Error fetching completions: ${error.message}`);
         logError(LogCategory.DB, 'Error fetching completions', { error: error.message });
         return;
       }
       
-      console.log(`✅ Successfully fetched completions:`, data);
-      if (data && data.length > 0) {
-        data.forEach((completion, i) => {
-          console.log(`  Completion ${i+1}:`, { 
-            id: completion.id, 
-            habit_id: completion.habit_id, 
-            date: completion.completed_date, 
-            status: completion.status 
-          });
-        });
-      } else {
-        console.log(`ℹ️ No completions found in this date range`);
-      }
-      
       // Update completions state
-      console.log(`🔄 Updating completions state with ${data?.length || 0} records`);
       setCompletions(data || []);
       
       // Also update habitCompletions derived state for faster lookups
-      console.log(`🔄 Updating habitCompletions lookup state`);
       const completionsMap: Record<string, 'completed' | null> = {};
       
       if (data) {
         data.forEach(completion => {
           const key = `${completion.habit_id}-${completion.completed_date}`;
           completionsMap[key] = completion.status;
-          console.log(`  Setting key "${key}" to "${completion.status}"`);
         });
       }
       
       setHabitCompletions(completionsMap);
-      console.log(`✅ Completions state update finished`);
       
     } catch (err) {
-      console.log(`❌ Exception in fetchCompletions: ${err}`);
       logError(LogCategory.SYSTEM, 'Error in fetchCompletions', { 
         error: err instanceof Error ? err.message : String(err)
       });
@@ -369,49 +234,29 @@ const WeekView: React.FC<WeekViewProps> = ({ viewMode = 'week' }) => {
 
   // Handle habit completion toggling for current day only
   const handleHabitCompletion = async (habitId: string, date: Date) => {
+    if (!user) return;
+    
     // Format the date for storage and display
     const dateStr = format(date, 'yyyy-MM-dd');
-    const processingKey = `${habitId}-${dateStr}`;
     
     // Only allow completion for the current day
     if (!isSameDay(date, today)) {
-      console.log(`🚫 Cannot complete habit for day other than today: ${dateStr}`);
+      logDebug(LogCategory.HABITS, 'Cannot complete habit for day other than today', { date: dateStr });
       return;
     }
     
-    console.log(`🔍 CLICK DETECTED: Toggling habit ${habitId} for date ${dateStr}`);
     logEvent(LogCategory.HABITS, 'Habit completion toggled', { 
       habitId, 
-      date: dateStr,
-      authenticated: !!user
-    });
-    
-    // Start processing - show visual feedback
-    console.log(`⏳ Setting processing state for ${processingKey} to true`);
-    setProcessingHabits(prev => {
-      const newState = { ...prev, [processingKey]: true };
-      console.log(`⚙️ New processing state:`, newState);
-      return newState;
+      date: dateStr
     });
     
     try {
-      // Check if user is authenticated
-      if (!user) {
-        console.log(`❌ User not authenticated`);
-        logError(LogCategory.HABITS, 'User not authenticated for habit completion', {
-          habitId, date: dateStr
-        });
-        setError("You must be signed in to track habits");
-        return;
-      }
-
       // Find completion status in state
       const key = `${habitId}-${dateStr}`;
       const currentStatus = habitCompletions[key] || null;
       
       // Toggle between completed and not completed
       const newStatus = currentStatus === 'completed' ? null : 'completed';
-      console.log(`🔄 Toggling status from "${currentStatus}" to "${newStatus}"`);
       
       // Update local state immediately for UI responsiveness
       setHabitCompletions(prev => ({
@@ -432,7 +277,6 @@ const WeekView: React.FC<WeekViewProps> = ({ viewMode = 'week' }) => {
           });
           
         if (insertError) {
-          console.log(`❌ Error marking habit completed: ${insertError.message}`);
           setError("Error: Failed to update habit. Please try again.");
           
           // Revert the local state
@@ -456,7 +300,6 @@ const WeekView: React.FC<WeekViewProps> = ({ viewMode = 'week' }) => {
           });
           
         if (deleteError) {
-          console.log(`❌ Error unmarking habit completion: ${deleteError.message}`);
           setError("Error: Failed to update habit. Please try again.");
           
           // Revert the local state
@@ -470,14 +313,7 @@ const WeekView: React.FC<WeekViewProps> = ({ viewMode = 'week' }) => {
         }
       }
     } catch (error) {
-      console.log(`❌ Unexpected exception: ${error}`);
       setError("An unexpected error occurred. Please try again.");
-    } finally {
-      // Remove processing state
-      setProcessingHabits(prev => ({
-        ...prev,
-        [processingKey]: false
-      }));
     }
   };
 
@@ -524,7 +360,6 @@ const WeekView: React.FC<WeekViewProps> = ({ viewMode = 'week' }) => {
 
   // Render a habit's week view
   const renderHabit = (habit: Habit) => {
-    console.log(`🖌️ Rendering week view for habit: ${habit.name}`);
     return (
       <div className="mt-2">
         {/* Habit label and checkboxes */}
@@ -588,19 +423,16 @@ const WeekView: React.FC<WeekViewProps> = ({ viewMode = 'week' }) => {
     return goals.map((goal) => {
       // Skip this goal if we've already rendered one with the same name
       if (renderedGoalNames.has(goal.goal)) {
-        console.log(`⚠️ Skipping duplicate goal: ${goal.goal} (ID: ${goal.id}) in week view`);
         return null;
       }
       
       // Mark this goal name as rendered
       renderedGoalNames.set(goal.goal, true);
-      console.log(`🎯 Rendering goal: ${goal.goal} (ID: ${goal.id}) in week view`);
       
       // Filter out duplicate habits
       const renderedHabits = new Map<string, boolean>();
       const uniqueHabits = goal.habits.filter(habit => {
         if (renderedHabits.has(habit.name)) {
-          console.log(`⚠️ Filtering out duplicate habit: ${habit.name} (ID: ${habit.id}) in week view`);
           return false;
         }
         renderedHabits.set(habit.name, true);
@@ -621,7 +453,6 @@ const WeekView: React.FC<WeekViewProps> = ({ viewMode = 'week' }) => {
 
   // Navigation methods
   const navigatePrevious = () => {
-    console.log(`⬅️ Navigating to previous ${viewMode}`);
     if (viewMode === 'week') {
       setCurrentWeekStart(prev => subWeeks(prev, 1));
     } else if (viewMode === 'month') {
@@ -630,21 +461,11 @@ const WeekView: React.FC<WeekViewProps> = ({ viewMode = 'week' }) => {
   };
 
   const navigateNext = () => {
-    console.log(`➡️ Navigating to next ${viewMode}`);
     if (viewMode === 'week') {
       setCurrentWeekStart(prev => addWeeks(prev, 1));
     } else if (viewMode === 'month') {
       setCurrentWeekStart(prev => addWeeks(prev, 4)); // Roughly one month
     }
-  };
-
-  // Toggle between week and month view - fixed function
-  const toggleViewMode = () => {
-    // Create a new state based on the current viewMode
-    const newViewMode = viewMode === 'week' ? 'month' : 'week';
-    // We can't directly setState since we don't have setViewMode
-    // Instead, we'll inform the user they need to lift this state up
-    console.log(`Toggle to ${newViewMode} view requested. This feature needs to be implemented in the parent component.`);
   };
 
   if (loading) {
@@ -696,14 +517,6 @@ const WeekView: React.FC<WeekViewProps> = ({ viewMode = 'week' }) => {
         </div>
       )}
 
-      {/* View mode toggle */}
-      <button
-        onClick={toggleViewMode}
-        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-      >
-        Switch to {viewMode === 'week' ? 'Month' : 'Week'} View
-      </button>
-
       {/* Helper tip */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700 flex items-start space-x-2">
         <div className="flex-shrink-0 mt-0.5">
@@ -722,20 +535,6 @@ const WeekView: React.FC<WeekViewProps> = ({ viewMode = 'week' }) => {
       <div className="space-y-8">
         {renderGoals()}
       </div>
-
-      {/* Debug section in development only */}
-      {import.meta.env.DEV && (
-        <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <p className="text-sm text-gray-600 mb-2">Current Data:</p>
-          <p className="text-xs text-gray-500">
-            {viewMode === 'week'
-              ? `Week: ${format(displayDates[0], 'yyyy-MM-dd')} - ${format(displayDates[displayDates.length - 1], 'yyyy-MM-dd')}`
-              : `Month: ${format(currentWeekStart, 'MMMM yyyy')}`}
-          </p>
-          <p className="text-xs text-gray-500">Goals: {goals.length}</p>
-          <p className="text-xs text-gray-500">Completions: {completions.length}</p>
-        </div>
-      )}
     </div>
   );
 };

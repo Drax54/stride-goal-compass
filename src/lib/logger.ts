@@ -117,11 +117,11 @@ export const logDebug = (
 /**
  * Create a performance timer
  */
-export const createTimer = (category: LogCategory, operation: string) => {
+export const createTimer = (category: LogCategory, operation: string): Timer => {
   const startTime = performance.now();
   
   return {
-    stop: (additionalData?: Record<string, unknown>) => {
+    stop: (additionalData?: Record<string, unknown>): number => {
       const endTime = performance.now();
       const duration = endTime - startTime;
       
@@ -133,4 +133,4 @@ export const createTimer = (category: LogCategory, operation: string) => {
       return duration;
     }
   };
-} 
+}

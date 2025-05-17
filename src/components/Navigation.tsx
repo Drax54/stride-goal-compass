@@ -1,5 +1,6 @@
-import React from 'react';
+
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { logEvent, LogCategory } from '../lib/logger';
 
 interface NavigationProps {
   currentView: 'day' | 'week' | 'month' | 'year' | 'analytics';
@@ -7,13 +8,18 @@ interface NavigationProps {
 }
 
 const Navigation = ({ currentView, onViewChange }: NavigationProps) => {
+  const handleViewChange = (view: 'day' | 'week' | 'month' | 'year' | 'analytics') => {
+    logEvent(LogCategory.NAVIGATION, 'View change', { from: currentView, to: view });
+    onViewChange(view);
+  };
+  
   return (
     <div className="flex items-center justify-between mb-8">
       <div className="flex space-x-4">
         {['day', 'week', 'month', 'year', 'analytics'].map((view) => (
           <button
             key={view}
-            onClick={() => onViewChange(view as any)}
+            onClick={() => handleViewChange(view as any)}
             className={`px-4 py-2 rounded-lg transition-colors ${
               currentView === view
                 ? 'bg-gray-900 text-white'

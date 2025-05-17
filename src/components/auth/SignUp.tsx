@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Target, Mail, Lock, ArrowRight } from 'lucide-react';
+import { logEvent, logError, LogCategory } from '../../lib/logger';
 
 const SignUp = () => {
   const [email, setEmail] = useState('');
@@ -15,22 +17,19 @@ const SignUp = () => {
     setIsLoading(true);
     setError(null);
     
-    // Allow any email format for development
+    logEvent(LogCategory.AUTH, 'Sign up attempt', { email: email.split('@')[0] });
+    
     try {
-      console.log(`Attempting to sign up with email: ${email}`);
-      
-      // Development mode - allow any email format
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          // Skip email verification for development
           emailRedirectTo: window.location.origin + '/onboarding',
         }
       });
 
       if (error) {
-        console.error('Sign up error:', error);
+        logError(LogCategory.AUTH, 'Sign up error', { error: error.message });
         
         if (error.message.includes('User already registered')) {
           throw new Error('An account with this email already exists. Please sign in instead.');
@@ -38,12 +37,12 @@ const SignUp = () => {
         throw error;
       }
       
-      console.log('Sign up successful:', data);
+      logEvent(LogCategory.AUTH, 'Sign up successful', { userId: data?.user?.id });
       navigate('/onboarding');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'An error occurred during sign up';
       setError(message);
-      console.error('Sign up catch block error:', message);
+      logError(LogCategory.AUTH, 'Sign up catch block error', { error: message });
     } finally {
       setIsLoading(false);
     }
@@ -109,7 +108,7 @@ const SignUp = () => {
               <div className="relative">
                 <Mail size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
-                  type="text" // Changed from email to text to bypass browser validation
+                  type="text"
                   required
                   className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 ease-in-out"
                   placeholder="Email address"

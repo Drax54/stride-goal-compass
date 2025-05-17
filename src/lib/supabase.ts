@@ -1,4 +1,6 @@
+
 import { createClient } from '@supabase/supabase-js';
+import { logEvent, logError, LogCategory } from './logger';
 
 // Use direct values for Supabase credentials
 const supabaseUrl = 'https://ydsrnoiilkvftlqzhzji.supabase.co';
@@ -21,6 +23,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
       
       try {
+        logEvent(LogCategory.API, 'Supabase fetch request', { url });
         // Add signal to options
         const fetchOptions = {
           ...options,
@@ -34,9 +37,20 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
         return response;
       } catch (error) {
         clearTimeout(timeoutId);
-        console.error('Fetch error:', error);
+        logError(LogCategory.API, 'Fetch error', { error });
         throw error;
       }
     }
   },
 });
+
+// Helper function to check if Supabase is connected
+export const checkSupabaseConnection = async (): Promise<boolean> => {
+  try {
+    const { error } = await supabase.from('user_goals').select('count', { count: 'exact', head: true });
+    return !error;
+  } catch (error) {
+    logError(LogCategory.DB, 'Supabase connection check failed', { error });
+    return false;
+  }
+};

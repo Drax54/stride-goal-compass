@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Target, Mail, Lock } from 'lucide-react';
-import { logEvent, LogCategory } from '../../lib/logger';
+import { logEvent, LogCategory, logError } from '../../lib/logger';
 
 const SignIn = () => {
   const [email, setEmail] = useState('');
@@ -19,25 +20,21 @@ const SignIn = () => {
     logEvent(LogCategory.AUTH, 'Sign in attempt', { email: email.split('@')[0] });
     
     try {
-      console.log(`🔐 Attempting sign in for user: ${email}`);
       const { error, data } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
-        console.error(`🔐 Sign in failed: ${error.message}`, error);
-        logEvent(LogCategory.AUTH, 'Sign in failed', { error: error.message });
+        logError(LogCategory.AUTH, 'Sign in failed', { error: error.message });
         throw error;
       }
 
-      console.log(`🔐 Sign in successful for user: ${email}`);
       logEvent(LogCategory.AUTH, 'Sign in successful', { userId: data?.user?.id });
 
       // After successful sign in, check if user has any goals
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        console.log(`🔐 Retrieved user data: ${user.id}`);
         const { data: goals, error: goalsError } = await supabase
           .from('user_goals')
           .select('id')
@@ -45,10 +42,9 @@ const SignIn = () => {
           .limit(1);
 
         if (goalsError) {
-          console.error(`🔐 Error fetching goals: ${goalsError.message}`, goalsError);
+          logError(LogCategory.AUTH, 'Error fetching goals', { error: goalsError.message });
         }
 
-        console.log(`🔐 User has goals: ${goals && goals.length > 0}`);
         logEvent(LogCategory.AUTH, 'Checked user goals', { 
           hasGoals: goals && goals.length > 0,
           userId: user.id
@@ -56,11 +52,9 @@ const SignIn = () => {
 
         // If no goals exist, redirect to onboarding
         if (!goals?.length) {
-          console.log(`🔐 Redirecting to onboarding: new user`);
           logEvent(LogCategory.AUTH, 'Redirect to onboarding', { userId: user.id });
           navigate('/onboarding');
         } else {
-          console.log(`🔐 Redirecting to dashboard: existing user`);
           logEvent(LogCategory.AUTH, 'Redirect to dashboard', { userId: user.id });
           navigate('/dashboard');
         }

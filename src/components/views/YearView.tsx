@@ -1,71 +1,54 @@
-import React, { useState, useEffect } from 'react';
+
+import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { format, getYear, eachMonthOfInterval, startOfYear, endOfYear, addYears, subYears } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { logEvent, logDebug, logError, createTimer } from '../../lib/logger';
 import { LogCategory } from '../../lib/logger';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface Goal {
   id: string;
-  created_at: string;
   user_id: string;
   goal: string;
-  why: string;
-  how: string;
-  date: string;
-  time: string;
-  area: string;
+  created_at: string;
 }
 
 interface HabitCompletion {
   id: string;
-  created_at: string;
   habit_id: string;
   user_id: string;
-  date: string;
-  completed: boolean;
+  completed_date: string;
+  status: 'completed' | 'failed';
 }
 
 const YearView: React.FC = () => {
+  const { user } = useAuth();
   const [currentYear, setCurrentYear] = useState(() => getYear(new Date()));
   const [months, setMonths] = useState<Date[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [completions, setCompletions] = useState<HabitCompletion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // Keep this state but mark it with underscore to indicate it's not used directly
-  const [_habitCompletions, setHabitCompletions] = useState<Record<string, 'completed' | null>>({});
-  const [user, setUser] = useState<User | null>(null);
-  
-  const [processingHabits, setProcessingHabits] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const fetchYearData = async () => {
+      if (!user) return;
+      
       setLoading(true);
       setError(null);
+      
       try {
         const timer = createTimer(LogCategory.PERFORMANCE, "YEAR_DATA_FETCH");
-        logDebug(LogCategory.HABITS, 'Fetching user and goals for year view');
-
-        // Fetch User
-        const { data: userData, error: userError } = await supabase.auth.getUser();
-        if (userError) throw userError;
-        if (userData?.user) {
-          setUser(userData.user as User);
-        }
-
-        if (!userData?.user) {
-          console.warn('No user found, skipping data fetch.');
-          return;
-        }
+        logDebug(LogCategory.HABITS, 'Fetching goals for year view');
 
         // Fetch Goals for the year
         const { data: goalsData, error: goalsError } = await supabase
           .from('user_goals')
           .select('*')
-          .eq('user_id', userData.user.id)
-          .gte('date', format(startOfYear(new Date(currentYear, 0, 1)), 'yyyy-MM-dd'))
-          .lte('date', format(endOfYear(new Date(currentYear, 11, 31)), 'yyyy-MM-dd'));
+          .eq('user_id', user.id)
+          .gte('created_at', format(startOfYear(new Date(currentYear, 0, 1)), 'yyyy-MM-dd'))
+          .lte('created_at', format(endOfYear(new Date(currentYear, 11, 31)), 'yyyy-MM-dd'));
 
         if (goalsError) throw goalsError;
         setGoals(goalsData || []);
@@ -74,21 +57,19 @@ const YearView: React.FC = () => {
         const { data: completionsData, error: completionsError } = await supabase
           .from('habit_completions')
           .select('*')
-          .eq('user_id', userData.user.id)
-          .gte('date', format(startOfYear(new Date(currentYear, 0, 1)), 'yyyy-MM-dd'))
-          .lte('date', format(endOfYear(new Date(currentYear, 11, 31)), 'yyyy-MM-dd'));
+          .eq('user_id', user.id)
+          .gte('completed_date', format(startOfYear(new Date(currentYear, 0, 1)), 'yyyy-MM-dd'))
+          .lte('completed_date', format(endOfYear(new Date(currentYear, 11, 31)), 'yyyy-MM-dd'));
 
         if (completionsError) throw completionsError;
         setCompletions(completionsData || []);
 
-        // Transform completions into a more usable format
-        const transformedCompletions: Record<string, 'completed' | null> = {};
-        completionsData?.forEach(completion => {
-          transformedCompletions[completion.habit_id + '-' + completion.date] = 'completed';
+        logEvent(LogCategory.HABITS, 'Fetched year view data', { 
+          year: currentYear,
+          goalsCount: goalsData?.length || 0,
+          completionsCount: completionsData?.length || 0,
+          duration: timer.stop() 
         });
-        setHabitCompletions(transformedCompletions);
-
-        logEvent(LogCategory.HABITS, 'Fetched year view data', { duration: timer.stop() });
       } catch (err: any) {
         logError(LogCategory.ERROR, 'Error fetching year view data', { error: err.message });
         setError(err.message || "Failed to load data.");
@@ -105,9 +86,12 @@ const YearView: React.FC = () => {
       setMonths(monthsInYear);
     };
 
-    fetchYearData();
     generateMonths();
-  }, [currentYear]);
+    
+    if (user) {
+      fetchYearData();
+    }
+  }, [currentYear, user]);
 
   const goToPreviousYear = () => {
     setCurrentYear(prevYear => subYears(new Date(prevYear, 0, 1), 1).getFullYear());
@@ -115,96 +99,6 @@ const YearView: React.FC = () => {
 
   const goToNextYear = () => {
     setCurrentYear(prevYear => addYears(new Date(prevYear, 0, 1), 1).getFullYear());
-  };
-  
-  // We're keeping this function but marking it with underscore to indicate it's for future use
-  const _handleHabitCompletion = async (habitId: string, date: Date) => {
-    // Format the date for storage and display
-    const dateStr = format(date, 'yyyy-MM-dd');
-    const processingKey = `${habitId}-${dateStr}`;
-    
-    if (processingHabits[processingKey]) {
-      console.log(`🛑 Already processing ${processingKey}, ignoring.`);
-      return;
-    }
-    
-    // Start processing - show visual feedback
-    console.log(`⏳ Setting processing state for ${processingKey} to true`);
-    setProcessingHabits((prev: Record<string, boolean>) => {
-      const newState = { ...prev, [processingKey]: true };
-      console.log(`⚙️ New processing state:`, newState);
-      return newState;
-    });
-    
-    try {
-      const timer = createTimer(LogCategory.PERFORMANCE, "HABIT_COMPLETION");
-      logDebug(LogCategory.HABITS, `Toggling habit completion for habit ${habitId} on ${dateStr}`);
-      
-      // Check if the habit is already completed on this date
-      const isCompleted = !!completions.find(completion => completion.habit_id === habitId && completion.date === dateStr);
-      
-      if (isCompleted) {
-        // If it's completed, remove the completion
-        const { error: deleteError } = await supabase
-        .from('habit_completions')
-        .delete()
-        .eq('habit_id', habitId)
-        .eq('date', dateStr)
-        .eq('user_id', user?.id);
-        
-        if (deleteError) {
-          logError(LogCategory.ERROR, `Error deleting habit completion for habit ${habitId} on ${dateStr}`, { error: deleteError.message });
-          setError("Failed to remove completion. Please try again.");
-          return;
-        }
-        
-        // Update state to reflect the deletion
-        setCompletions(prevCompletions => prevCompletions.filter(completion => !(completion.habit_id === habitId && completion.date === dateStr)));
-        setHabitCompletions(prev => {
-          const { [`${habitId}-${dateStr}`]: _, ...rest } = prev;
-          return rest;
-        });
-        
-        logEvent(LogCategory.HABITS, `Removed habit completion for habit ${habitId} on ${dateStr}`, { duration: timer.stop() });
-      } else {
-        // If it's not completed, add a completion
-        const { data: insertData, error: insertError } = await supabase
-        .from('habit_completions')
-        .insert([{ habit_id: habitId, user_id: user?.id, date: dateStr }])
-        .select();
-        
-        if (insertError) {
-          logError(LogCategory.ERROR, `Error inserting habit completion for habit ${habitId} on ${dateStr}`, { error: insertError.message });
-          setError("Failed to add completion. Please try again.");
-          return;
-        }
-        
-        // Ensure insertData is not null and has at least one element
-        if (insertData && insertData.length > 0) {
-          const newCompletion = insertData[0];
-          
-          // Update state to reflect the insertion
-          setCompletions(prevCompletions => [...prevCompletions, newCompletion]);
-          setHabitCompletions(prev => ({ ...prev, [`${habitId}-${dateStr}`]: 'completed' }));
-          
-          logEvent(LogCategory.HABITS, `Added habit completion for habit ${habitId} on ${dateStr}`, { duration: timer.stop() });
-        } else {
-          const errorMessage = "Failed to insert completion: No data returned.";
-          logError(LogCategory.ERROR, errorMessage, { error: errorMessage });
-          setError("Failed to add completion. Please try again.");
-          return;
-        }
-      }
-    } catch (error: any) {
-      console.log(`❌ Unexpected exception: ${error}`);
-      setError("An unexpected error occurred. Please try again.");
-    } finally {
-      // Remove processing state
-      setProcessingHabits((prev: Record<string, boolean>) => ({
-        ...prev,
-        [processingKey]: false
-      }));
-    }
   };
 
   return (
@@ -229,10 +123,12 @@ const YearView: React.FC = () => {
             <div key={month.toISOString()} className="p-3 rounded-lg shadow-md">
               <h3 className="text-lg font-semibold text-center mb-2">{format(month, 'MMMM')}</h3>
               <div className="flex flex-col">
-                {goals.filter(goal => getYear(new Date(goal.date)) === currentYear && format(new Date(goal.date), 'MMMM') === format(month, 'MMMM')).map(goal => (
+                {goals.filter(goal => {
+                  const goalDate = new Date(goal.created_at);
+                  return getYear(goalDate) === currentYear && format(goalDate, 'MMMM') === format(month, 'MMMM');
+                }).map(goal => (
                   <div key={goal.id} className="mb-2">
                     <p className="text-sm font-medium">{goal.goal}</p>
-                    {/* Display habit completions for each goal */}
                   </div>
                 ))}
               </div>

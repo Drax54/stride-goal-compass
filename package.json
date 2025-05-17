@@ -3,21 +3,20 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-"scripts": {
-  "dev": "vite",
-  "build": "vite build",
-  "lint": "eslint .",
-  "preview": "vite preview",
-  "build:dev": "vite build --mode development"
-},
-
-  
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "build:dev": "vite build --mode development"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.7",
     "@types/canvas-confetti": "^1.9.0",
     "canvas-confetti": "^1.9.3",
     "date-fns": "^3.3.1",
     "framer-motion": "^11.0.8",
+    "lovable-tagger": "^1.1.8",
     "lucide-react": "^0.344.0",
     "openai": "^4.91.1",
     "react": "^18.3.1",

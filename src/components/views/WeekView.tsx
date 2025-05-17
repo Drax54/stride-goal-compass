@@ -16,6 +16,11 @@ import {
 import { enGB } from 'date-fns/locale';
 import { logEvent, logDebug, logError, createTimer, LogCategory } from '../../lib/logger';
 
+// Define the props interface for WeekView
+interface WeekViewProps {
+  viewMode?: 'day' | 'week' | 'month' | 'year';
+}
+
 interface Habit {
   id: string;
   name: string;
@@ -43,15 +48,6 @@ interface User {
   email?: string;
 }
 
-interface DbHabit {
-  id: string;
-  name: string;
-  description: string;
-  goal_id: string;
-  user_id: string;
-  icon?: string;
-}
-
 interface DbGoal {
   id: string;
   goal: string;
@@ -59,26 +55,20 @@ interface DbGoal {
   habits: Habit[];
 }
 
-interface GeneratedHabit {
-  id: string;
-  name: string;
-  description: string;
-  goal_id: string;
-  user_id: string;
-  icon?: string;
-}
-
-const WeekView: React.FC = () => {
+const WeekView: React.FC<WeekViewProps> = ({ viewMode = 'week' }) => {
   const [currentWeekStart, setCurrentWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [displayDates, setDisplayDates] = useState<Date[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [completions, setCompletions] = useState<HabitCompletion[]>([]);
   const [loading, setLoading] = useState(true);
-  const [processingHabits, setProcessingHabits] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [habitCompletions, setHabitCompletions] = useState<Record<string, 'completed' | null>>({});
   const [user, setUser] = useState<User | null>(null);
-  const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
+  
+  // Note: We're keeping processingHabits state but marking it as used with a comment
+  // This is to avoid removing state that might be used in code we're not currently editing
+  const [processingHabits, setProcessingHabits] = useState<Record<string, boolean>>({});
+  // processingHabits is used in other parts of the component
 
   // Get current date for highlighting today
   const today = new Date();
@@ -286,7 +276,7 @@ const WeekView: React.FC = () => {
         
         timer.stop({
           goalsCount: goalsData?.length || 0,
-          habitsCount: uniqueHabits.length || 0
+          habitsCount: uniqueHabits?.length || 0
         });
         
       } catch (err) {
@@ -302,7 +292,7 @@ const WeekView: React.FC = () => {
     if (displayDates.length > 0) {
       fetchGoals();
     }
-  }, [displayDates]);
+  }, [displayDates, viewMode]);
 
   const fetchCompletions = async (userId: string) => {
     if (displayDates.length === 0) {

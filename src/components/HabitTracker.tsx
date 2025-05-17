@@ -16,6 +16,9 @@ const HabitTracker: React.FC<HabitTrackerProps> = ({ initialView = 'habits' }) =
   const [showAddHabitModal, setShowAddHabitModal] = useState(false);
   const [key, setKey] = useState(0);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
+  
+  // These variables are declared but not directly used in this file
+  // We'll keep them as they might be used in other parts or for future implementation
   const [habits, setHabits] = useState<any[]>([]);
   const [filteredHabits, setFilteredHabits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

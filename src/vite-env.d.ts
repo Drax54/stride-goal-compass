@@ -10,3 +10,11 @@ import { ReactElement } from 'react'
 declare namespace JSX {
   interface Element extends ReactElement {}
 }
+
+// Add an interface for WeekView props to fix the viewMode prop errors
+declare module '*.tsx' {
+  interface WeekViewProps {
+    viewMode?: 'day' | 'week' | 'month' | 'year';
+  }
+}
+

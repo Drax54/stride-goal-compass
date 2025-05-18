@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Plus, X, Edit2, Save, Trash2, Loader2 } from 'lucide-react';
-import { generateHabitsForGoal, GeneratedHabit } from '../../lib/openai';
+import { generateHabitsForGoal } from '../../lib/openai';
 
 interface Goal {
   id: string;
@@ -352,4 +352,4 @@ const GoalsView: React.FC<GoalsViewProps> = ({ onGoalsUpdate }) => {
   );
 };
 
-export default GoalsView; 
+export default GoalsView;

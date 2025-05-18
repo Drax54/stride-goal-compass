@@ -11,8 +11,16 @@ import HabitTracker from './components/HabitTracker';
 import Header from './components/Header';
 import LoadingScreen from './components/LoadingScreen';
 
-// Route guard component
-const ProtectedRoute = ({ children, requireAuth = true, requireNewUser = false }) => {
+// Route guard component with proper typing
+const ProtectedRoute = ({ 
+  children, 
+  requireAuth = true, 
+  requireNewUser = false 
+}: { 
+  children: React.ReactNode; 
+  requireAuth?: boolean; 
+  requireNewUser?: boolean;
+}) => {
   const { user, isLoading, isNewUser } = useAuth();
   
   if (isLoading) {

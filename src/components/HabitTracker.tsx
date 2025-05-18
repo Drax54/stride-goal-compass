@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import WeekView from './views/WeekView';
 import GoalsView from './views/GoalsView';
@@ -18,13 +17,10 @@ const HabitTracker: React.FC<HabitTrackerProps> = ({ initialView = 'habits' }) =
   const [key, setKey] = useState(0);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
   
-  // These variables are kept for potential future usage
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [habits, setHabits] = useState<any[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [filteredHabits, setFilteredHabits] = useState<any[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [loading, setLoading] = useState(true);
+  // Remove unused state declarations or mark them with underscore to indicate they're intentionally unused
+  const [_habits, _setHabits] = useState<any[]>([]);
+  const [_filteredHabits, _setFilteredHabits] = useState<any[]>([]);
+  const [_loading, _setLoading] = useState(true);
 
   useEffect(() => {
     // Check if we're in offline mode

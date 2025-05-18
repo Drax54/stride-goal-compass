@@ -1,5 +1,4 @@
-
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { logEvent, logError, LogCategory, createTimer } from '../lib/logger';

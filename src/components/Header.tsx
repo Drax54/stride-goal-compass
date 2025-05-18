@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings, PlusCircle, Menu, X, LogOut } from 'lucide-react';
+import { Menu, X, LogOut } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 const Header = () => {
@@ -70,4 +70,4 @@ const Header = () => {
   );
 }
 
-export default Header
+export default Header;

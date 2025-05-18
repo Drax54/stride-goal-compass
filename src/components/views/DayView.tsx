@@ -1,21 +1,20 @@
-import React from 'react';
+import { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const DayView = () => {
   const habits = [
-    { id: 1, name: 'Practice One BJJ Technique', completed: true },
-    { id: 2, name: 'Slept 7 Hours Last Night', completed: false },
-    { id: 3, name: 'Daily Meditation', completed: true },
-    { id: 4, name: 'Strength Training', completed: true },
-    { id: 5, name: 'Plan Daily Priorities', completed: false },
+    { id: 1, name: 'Set daily priorities', completed: true },
+    { id: 2, name: 'Time block tasks', completed: false },
+    { id: 3, name: 'Exercise 30 mins', completed: true },
+    { id: 4, name: 'Quality time with family', completed: false },
   ];
 
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <div className="text-sm text-gray-500">Monday</div>
-          <div className="text-3xl font-bold text-gray-900">10th February</div>
+          <div className="text-sm text-gray-500">Today</div>
+          <div className="text-3xl font-bold text-gray-900">Dec 15, 2024</div>
         </div>
         <div className="flex space-x-2">
           <button className="p-2 rounded-lg hover:bg-gray-100">
@@ -31,18 +30,19 @@ const DayView = () => {
         {habits.map((habit) => (
           <div
             key={habit.id}
-            className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200"
+            className="flex items-center justify-between p-4 bg-white rounded-lg shadow"
           >
-            <span className="text-gray-900">{habit.name}</span>
-            <button
-              className={`w-24 py-2 px-4 rounded-lg text-center ${
-                habit.completed
-                  ? 'bg-green-600 text-white'
-                  : 'bg-red-100 text-red-600'
-              }`}
-            >
-              {habit.completed ? '✓' : '×'}
-            </button>
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                checked={habit.completed}
+                className="w-5 h-5 mr-3 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <span className={habit.completed ? 'line-through text-gray-500' : ''}>
+                {habit.name}
+              </span>
+            </div>
+            <div className="text-sm text-gray-500">Daily</div>
           </div>
         ))}
       </div>

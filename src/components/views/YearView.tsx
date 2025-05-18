@@ -27,7 +27,7 @@ const YearView: React.FC = () => {
   const [currentYear, setCurrentYear] = useState(() => getYear(new Date()));
   const [months, setMonths] = useState<Date[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
-  const [completions, setCompletions] = useState<HabitCompletion[]>([]);
+  const [_completions, setCompletions] = useState<HabitCompletion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

@@ -43,7 +43,7 @@ const ProtectedRoute = ({
     return <Navigate to="/onboarding" replace />;
   }
   
-  return children;
+  return <>{children}</>;
 };
 
 function AppRoutes() {

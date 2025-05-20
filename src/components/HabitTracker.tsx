@@ -1,10 +1,13 @@
+
 import React, { useState, useEffect } from 'react';
 import WeekView from './views/WeekView';
 import GoalsView from './views/GoalsView';
 import ProgressView from './views/ProgressView';
 import YearView from './views/YearView';
+import AnalyticsView from './views/AnalyticsView';
 import TabNavigation from './TabNavigation';
 import { supabase } from '../lib/supabase';
+import { logDebug, LogCategory } from '../lib/logger';
 
 interface HabitTrackerProps {
   initialView?: 'habits' | 'goals' | 'areas' | 'progress' | 'settings';
@@ -17,7 +20,7 @@ const HabitTracker: React.FC<HabitTrackerProps> = ({ initialView = 'habits' }) =
   const [key, setKey] = useState(0);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
   
-  // Remove unused state declarations or mark them with underscore to indicate they're intentionally unused
+  // Define state variables with underscore prefix to denote they're intentionally unused
   const [_habits, _setHabits] = useState<any[]>([]);
   const [_filteredHabits, _setFilteredHabits] = useState<any[]>([]);
   const [_loading, _setLoading] = useState(true);
@@ -28,7 +31,7 @@ const HabitTracker: React.FC<HabitTrackerProps> = ({ initialView = 'habits' }) =
     setIsOfflineMode(offlineMode);
     
     if (offlineMode) {
-      console.log('HabitTracker: Running in offline mode');
+      logDebug(LogCategory.UI, 'HabitTracker: Running in offline mode');
       loadLocalHabits();
     } else {
       // Regular Supabase data loading
@@ -61,20 +64,20 @@ const HabitTracker: React.FC<HabitTrackerProps> = ({ initialView = 'habits' }) =
           }
         }
         
-        setHabits(allHabits);
-        setFilteredHabits(allHabits);
-        setLoading(false);
+        _setHabits(allHabits);
+        _setFilteredHabits(allHabits);
+        _setLoading(false);
       } else {
-        console.log('No local habits found');
-        setHabits([]);
-        setFilteredHabits([]);
-        setLoading(false);
+        logDebug(LogCategory.UI, 'No local habits found');
+        _setHabits([]);
+        _setFilteredHabits([]);
+        _setLoading(false);
       }
     } catch (err) {
       console.error('Error loading local habits:', err);
-      setHabits([]);
-      setFilteredHabits([]);
-      setLoading(false);
+      _setHabits([]);
+      _setFilteredHabits([]);
+      _setLoading(false);
     }
   };
 
@@ -85,12 +88,12 @@ const HabitTracker: React.FC<HabitTrackerProps> = ({ initialView = 'habits' }) =
       return;
     }
     
-    setLoading(true);
+    _setLoading(true);
     
     // Check if we came from success page
     const fromSuccessPage = localStorage.getItem('fromSuccessPage') === 'true';
     if (fromSuccessPage) {
-      console.log('Coming from success page, will attempt multiple fetches if needed');
+      logDebug(LogCategory.UI, 'Coming from success page, will attempt multiple fetches if needed');
       localStorage.removeItem('fromSuccessPage');
     }
     
@@ -99,17 +102,17 @@ const HabitTracker: React.FC<HabitTrackerProps> = ({ initialView = 'habits' }) =
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) {
         console.error('Error getting user:', userError);
-        setHabits([]);
-        setFilteredHabits([]);
-        setLoading(false);
+        _setHabits([]);
+        _setFilteredHabits([]);
+        _setLoading(false);
         return;
       }
       
       if (!user) {
         console.error('No user found when fetching habits');
-        setHabits([]);
-        setFilteredHabits([]);
-        setLoading(false);
+        _setHabits([]);
+        _setFilteredHabits([]);
+        _setLoading(false);
         return;
       }
       
@@ -159,12 +162,12 @@ const HabitTracker: React.FC<HabitTrackerProps> = ({ initialView = 'habits' }) =
       // If we have data or all attempts are exhausted
       if (success && habitsData) {
         console.log('Successfully fetched habits:', habitsData);
-        setHabits(habitsData || []);
-        setFilteredHabits(habitsData || []);
+        _setHabits(habitsData || []);
+        _setFilteredHabits(habitsData || []);
       } else {
         console.error('All fetch attempts failed:', fetchError);
-        setHabits([]);
-        setFilteredHabits([]);
+        _setHabits([]);
+        _setFilteredHabits([]);
         
         // If we came from success page but failed to fetch habits after multiple attempts,
         // try one more approach - fetch goals and create placeholder habits
@@ -192,8 +195,8 @@ const HabitTracker: React.FC<HabitTrackerProps> = ({ initialView = 'habits' }) =
               }));
               
               console.log('Created placeholder habits:', placeholderHabits);
-              setHabits(placeholderHabits);
-              setFilteredHabits(placeholderHabits);
+              _setHabits(placeholderHabits);
+              _setFilteredHabits(placeholderHabits);
             }
           } catch (err) {
             console.error('Error creating placeholder habits:', err);
@@ -202,10 +205,10 @@ const HabitTracker: React.FC<HabitTrackerProps> = ({ initialView = 'habits' }) =
       }
     } catch (err) {
       console.error('Exception in fetchHabits:', err);
-      setHabits([]);
-      setFilteredHabits([]);
+      _setHabits([]);
+      _setFilteredHabits([]);
     } finally {
-      setLoading(false);
+      _setLoading(false);
     }
   };
 

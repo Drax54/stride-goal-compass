@@ -27,7 +27,7 @@ const YearView: React.FC = () => {
   const [currentYear, setCurrentYear] = useState(() => getYear(new Date()));
   const [months, setMonths] = useState<Date[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
-  const [_completions, setCompletions] = useState<HabitCompletion[]>([]);
+  const [_completions, _setCompletions] = useState<HabitCompletion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,7 +62,7 @@ const YearView: React.FC = () => {
           .lte('completed_date', format(endOfYear(new Date(currentYear, 11, 31)), 'yyyy-MM-dd'));
 
         if (completionsError) throw completionsError;
-        setCompletions(completionsData || []);
+        _setCompletions(completionsData || []);
 
         logEvent(LogCategory.HABITS, 'Fetched year view data', { 
           year: currentYear,
